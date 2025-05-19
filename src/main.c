@@ -1,5 +1,7 @@
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <math.h>
 
@@ -32,15 +34,16 @@
 #define ELASTICITY 0.8
 
 int main(int argc, char** argv) {
+    printf("Hello world!\n");
     srand(time(NULL));
 
     // SDL2
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-        SDL_Log("Не удалось инициализировать SDL: %s", SDL_GetError());
+        printf("Couldn't initialize SDL: %s\n", SDL_GetError());
         return 1;
     }
     SDL_Window* window = SDL_CreateWindow(
-        "SDL2 в Termux",
+        "Colliding particles!",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
         MAX_X,
@@ -48,7 +51,7 @@ int main(int argc, char** argv) {
         SDL_WINDOW_SHOWN
     );
     if (window == NULL) {
-        SDL_Log("Не удалось создать окно: %s", SDL_GetError());
+        printf("Couldn't open a window: %s\n", SDL_GetError());
         SDL_Quit();
         return 1;
     }
@@ -58,23 +61,28 @@ int main(int argc, char** argv) {
         -1,
         SDL_RENDERER_ACCELERATED
     );
+    printf("Trying to run accelerated renderer...\n");
     if (renderer == NULL) {
-        SDL_Log("Couldn't use accelerated rendering (GPU): %s\n\nTrying to use software rendering (CPU)...", SDL_GetError());
+        printf("Couldn't use accelerated rendering (GPU): %s\n\nTrying to use software rendering (CPU)...", SDL_GetError());
         renderer = SDL_CreateRenderer(
             window,
             -1,
             SDL_RENDERER_SOFTWARE
         );
         if (renderer == NULL) {
-            SDL_Log("Couldn't create software renderer: %s", SDL_GetError());
+            printf("Couldn't create software renderer: %s\n", SDL_GetError());
             SDL_DestroyWindow(window);
             SDL_Quit();
             return 1;
-        }
-    }
+        } 
+    } 
 
     // chipmunk setup
     cpSpace* space = cpSpaceNew();
+    if (space == NULL) {
+        printf("Couldn't create space for unknown reason\n");
+        return -1;
+    }
     cpSpaceSetGravity(space, cpv(GRAVITY));
     cpBody* static_body = cpSpaceGetStaticBody(space);
     cpShape* walls[4] = {
@@ -128,14 +136,20 @@ int main(int argc, char** argv) {
     while (running) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
-                lmbPressed = true;
-            }
-            else if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT) {
-                lmbPressed = false;
-            }
-            else if (event.type == SDL_QUIT) {
-                running = false;
+            switch (event.type) {
+                case SDL_MOUSEBUTTONDOWN:
+                    if (event.button.button == SDL_BUTTON_LEFT) {
+                        lmbPressed = true;
+                    }
+                    break;
+                case SDL_MOUSEBUTTONUP:
+                    if (event.button.button == SDL_BUTTON_LEFT) {
+                        lmbPressed = false;
+                    }
+                    break;
+                case SDL_QUIT:
+                    running = false;
+                    break;
             }
         }
 
@@ -158,17 +172,29 @@ int main(int argc, char** argv) {
         
         if(lmbPressed) {
             for(size_t i = 0; i < PARTICLES; ++i) {
-                cpVect vector = cpvsub(cpBodyGetPosition(particles[i].body), mousePos);
-                cpFloat distance = cpvlength(vector);
-                cpFloat distance2 = distance*distance;
+                char buffer[512];
+                // F = G/(r^2)
+                cpVect bodyPos = cpBodyGetPosition(particles[i].body);
+                cpVect vector = cpvsub(mousePos, bodyPos);
                 cpVect direction = cpvnormalize(vector);
-                vector = cpvmult(direction, 1/distance2);
-                vector = cpvmult(vector, -100);
+                float distance = cpvlength(vector);
+                float distance2 = distance*distance;
+                float divided = 1.0f;
+                vector = cpvmult(direction, divided);
+                vector = cpvmult(vector, 1e4);
                 cpBodyApplyForceAtWorldPoint(
                     particles[i].body,
                     cpvmult(vector, 1),
                     cpBodyGetPosition(particles[i].body)
                 );
+                /*
+                int written = snprintf(buffer, sizeof(buffer),
+                        "Mouse pos: (%.2f, %.2f)\nBody pos: (%.2f, %.2f)\nDistance: %.2f, ^2=%.2f\n1/(distance^2): %f\nDirection: (%.2f, %.2f)\nForce = (%f, %f)",
+                        mousePos.x, mousePos.y, bodyPos.x, bodyPos.y, distance, distance2, divided, direction.x, direction.y, vector.x, vector.y
+                        );
+                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Debug", buffer, NULL);
+                return -1;
+                */
             }
         }
 

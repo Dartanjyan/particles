@@ -2,7 +2,7 @@ CC_LINUX = gcc
 CC_WIN = x86_64-w64-mingw32-gcc
 
 LDFLAGS = -lchipmunk -lm
-LDFLAGS_LINUX = $(LDFLAGS) -lSDL2
+LDFLAGS_LINUX = $(LDFLAGS) -lSDL2 -L/usr/local/lib
 LDFLAGS_WIN = $(LDFLAGS) -L3rdparty/SDL/install/lib -lmingw32 -lSDL2main -lSDL2 -mwindows -L3rdparty/chipmunk/install/lib -lwinpthread
 
 CFLAGS = -O2
