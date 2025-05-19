@@ -1,4 +1,14 @@
 #!/bin/bash
+
+###
+# This script builds chipmunk for Windows. 
+# If you want to install for linux, then search it on repositories.
+#
+# AUR: chipmunk
+# Fedora: chipmunk-devel
+# Debian (checked): libchipmunk-dev
+###
+
 set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
@@ -25,7 +35,8 @@ cmake .. \
     -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc \
     -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++ \
     -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} \
-    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DNDEBUG=ON \
     -DCMAKE_EXE_LINKER_FLAGS="-lpthread" \
     -DCMAKE_SHARED_LINKER_FLAGS="-lpthread"
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# HOST=x86_64-w64-mingw32
+HOST=x86_64-w64-mingw32
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 SDL_DIR="$(realpath ${SCRIPT_DIR}/..)/3rdparty/SDL"
