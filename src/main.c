@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
-// #include <errno.h>
 
 #include <SDL2/SDL.h>
 #include <chipmunk/chipmunk.h>
@@ -14,22 +13,23 @@
 
 #define FPS 60
 
-#define MAX_X 400
-#define MAX_Y 300
+#define MAX_X 800
+#define MAX_Y 600
 
 #define STEP 0.05
 #define GRAVITY 0, 0
-#define PARTICLES 10
+#define PARTICLES 100
 
 #define RAND_VEL_MAX 20
 
-#define RAND_SIZE_MAX 2
-#define RAND_SIZE_MIN 1
+#define RAND_SIZE_MAX 5
+#define RAND_SIZE_MIN 3
 
 #define RAND_DENSITY_MAX 5
 #define RAND_DENSITY_MIN 0.1
-#define RANDOM_DENSITY 0
-#define DEFAULT_DENSITY 1
+#define RANDOM_DENSITY 1
+#define DEFAULT_DENSITY 5
+#define ELASTICITY 0.8
 
 int main(int argc, char** argv) {
     srand(time(NULL));
@@ -52,19 +52,28 @@ int main(int argc, char** argv) {
         SDL_Quit();
         return 1;
     }
-    SDL_Renderer* renderer = SDL_CreateRenderer(
+    SDL_Renderer* renderer;  
+    renderer = SDL_CreateRenderer(
         window,
         -1,
-        SDL_RENDERER_SOFTWARE
+        SDL_RENDERER_ACCELERATED
     );
     if (renderer == NULL) {
-        SDL_Log("Не удалось создать рендерер: %s", SDL_GetError());
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return 1;
+        SDL_Log("Couldn't use accelerated rendering (GPU): %s\n\nTrying to use software rendering (CPU)...", SDL_GetError());
+        renderer = SDL_CreateRenderer(
+            window,
+            -1,
+            SDL_RENDERER_SOFTWARE
+        );
+        if (renderer == NULL) {
+            SDL_Log("Couldn't create software renderer: %s", SDL_GetError());
+            SDL_DestroyWindow(window);
+            SDL_Quit();
+            return 1;
+        }
     }
 
-    // chipmunk
+    // chipmunk setup
     cpSpace* space = cpSpaceNew();
     cpSpaceSetGravity(space, cpv(GRAVITY));
     cpBody* static_body = cpSpaceGetStaticBody(space);
@@ -77,7 +86,7 @@ int main(int argc, char** argv) {
 
     for(uint8_t i = 0; i < 4; ++i) {
         cpSpaceAddShape(space, walls[i]);
-        cpShapeSetElasticity(walls[i], 1);
+        cpShapeSetElasticity(walls[i], ELASTICITY);
     }
 
     // particles
@@ -100,7 +109,7 @@ int main(int argc, char** argv) {
         
         cpBodySetPosition(body, cpv(rand()%MAX_X, rand()%MAX_Y));
         cpBodySetVelocity(body, cpv(random_float(-RAND_VEL_MAX, RAND_VEL_MAX), random_float(-RAND_VEL_MAX, RAND_VEL_MAX)));
-        cpShapeSetElasticity(shape, 1);
+        cpShapeSetElasticity(shape, ELASTICITY);
 
         particles[i].body = body;
         particles[i].shape = shape;
@@ -111,15 +120,29 @@ int main(int argc, char** argv) {
         cpSpaceAddShape(space, shape);
     }
 
+    // Main cycle
     bool running = true;
+    bool lmbPressed = false;
+    cpVect mousePos;
 
     while (running) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
+            if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+                lmbPressed = true;
+            }
+            else if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT) {
+                lmbPressed = false;
+            }
+            else if (event.type == SDL_QUIT) {
                 running = false;
             }
         }
+
+        int mx, my;
+        SDL_GetMouseState(&mx, &my);
+        mousePos.x = mx;
+        mousePos.y = my;
 
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
@@ -133,6 +156,22 @@ int main(int argc, char** argv) {
 
         SDL_RenderPresent(renderer);
         
+        if(lmbPressed) {
+            for(size_t i = 0; i < PARTICLES; ++i) {
+                cpVect vector = cpvsub(cpBodyGetPosition(particles[i].body), mousePos);
+                cpFloat distance = cpvlength(vector);
+                cpFloat distance2 = distance*distance;
+                cpVect direction = cpvnormalize(vector);
+                vector = cpvmult(direction, 1/distance2);
+                vector = cpvmult(vector, -100);
+                cpBodyApplyForceAtWorldPoint(
+                    particles[i].body,
+                    cpvmult(vector, 1),
+                    cpBodyGetPosition(particles[i].body)
+                );
+            }
+        }
+
         cpSpaceStep(space, STEP);
         tick(FPS);
     }
