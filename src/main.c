@@ -29,7 +29,7 @@
 
 #define RAND_DENSITY_MAX 5
 #define RAND_DENSITY_MIN 0.1
-#define RANDOM_DENSITY 1
+#define RANDOM_DENSITY 0
 #define DEFAULT_DENSITY 5
 #define ELASTICITY 0.8
 
@@ -74,13 +74,17 @@ int main(int argc, char** argv) {
             SDL_DestroyWindow(window);
             SDL_Quit();
             return 1;
-        } 
-    } 
+        } else {
+            printf("Using software (CPU) rendering.\n");
+        }
+    } else {
+        printf("Using accelerated (GPU) rendering.\n");
+    }
 
     // chipmunk setup
     cpSpace* space = cpSpaceNew();
     if (space == NULL) {
-        printf("Couldn't create space for unknown reason\n");
+        printf("Couldn't create space\n");
         return -1;
     }
     cpSpaceSetGravity(space, cpv(GRAVITY));
@@ -174,14 +178,15 @@ int main(int argc, char** argv) {
             for(size_t i = 0; i < PARTICLES; ++i) {
                 char buffer[512];
                 // F = G/(r^2)
+                const float G = 1e3;
+
                 cpVect bodyPos = cpBodyGetPosition(particles[i].body);
                 cpVect vector = cpvsub(mousePos, bodyPos);
                 cpVect direction = cpvnormalize(vector);
                 float distance = cpvlength(vector);
                 float distance2 = distance*distance;
-                float divided = 1.0f;
+                float divided = G; //G/distance2;
                 vector = cpvmult(direction, divided);
-                vector = cpvmult(vector, 1e4);
                 cpBodyApplyForceAtWorldPoint(
                     particles[i].body,
                     cpvmult(vector, 1),
