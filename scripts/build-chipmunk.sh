@@ -2,10 +2,10 @@
 
 ###
 # This script builds chipmunk for Windows if you run it with an env variable
-# $HOME set to Windows, like:
-# HOME=Windows ./scripts/build-chipmunk.sh
+# $HOST set to Windows, like:
+# HOST=Windows ./scripts/build-chipmunk.sh
 #
-# Otherwise it will build and install this library for linux with sudo.
+# If $HOST is not "Windows" then it will build and install this library for linux with sudo.
 ###
 
 set -e

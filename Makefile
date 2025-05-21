@@ -7,7 +7,7 @@ LDFLAGS_WIN = $(LDFLAGS) -L3rdparty/SDL/install/lib -lmingw32 -lSDL2main -lSDL2 
 
 CFLAGS = -O2
 CFLAGS_LINUX = $(CFLAGS) -I/usr/include/SDL2 -D_REENTRANT
-CFLAGS_WIN = $(CFLAGS) -I3rdparty/SDL/install/include -Dmain=SDL_main -I3rdparty/chipmunk/install/include
+CFLAGS_WIN = $(CFLAGS) -I3rdparty/SDL/install/include -I3rdparty/chipmunk/install/include -Dmain=SDL_main
 
 SRC_DIR = src
 BUILD_DIR = build
@@ -19,14 +19,14 @@ BIN_NAME = particles
 TARGET_LINUX = $(BUILD_DIR)/$(BIN_NAME)
 TARGET_WIN = $(BUILD_DIR)/$(BIN_NAME).exe
 
-# SDL2_LINUX_LIB =
-
 linux: $(BUILD_DIR) $(TARGET_LINUX)
-	tar -cJvf $(BUILD_DIR)/$(BIN_NAME).tar.xz $(TARGET_LINUX)
+#	tar -cJvf $(BUILD_DIR)/$(BIN_NAME).tar.xz $(TARGET_LINUX)
+
+MINGW_DIR=/usr/x86_64-w64-mingw32
 
 windows: $(BUILD_DIR) $(TARGET_WIN)
 	@cp -v 3rdparty/SDL/install/bin/SDL2.dll $(BUILD_DIR)
-	@cp -v /usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll $(BUILD_DIR)
+	@if [[ -f $(MINGW_DIR)/lib/libwinpthread-1.dll ]]; then cp -v /usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll $(BUILD_DIR); else cp -v /usr/x86_64-w64-mingw32/bin/libwinpthread-1.dll $(BUILD_DIR); fi
 	@zip $(BUILD_DIR)/$(BIN_NAME).zip $(TARGET_WIN) $(BUILD_DIR)/*.dll
 
 all: linux windows
