@@ -44,4 +44,4 @@ These scripts will build dll's for Windows. Then build the project:
 ```
 make windows
 ```
-After this, `particles.zip` must appear in `build` directory. On Windows machine UNPACK this before launching. Don't launch it straightly from the archive.
+After this, `particles.zip` must appear in `build` directory. On Windows machine UNPACK this before launching. Don't launch it straightly from the archive
