@@ -22,11 +22,9 @@ TARGET_WIN = $(BUILD_DIR)/$(BIN_NAME).exe
 linux: $(BUILD_DIR) $(TARGET_LINUX)
 #	tar -cJvf $(BUILD_DIR)/$(BIN_NAME).tar.xz $(TARGET_LINUX)
 
-MINGW_DIR=/usr/x86_64-w64-mingw32
-
 windows: $(BUILD_DIR) $(TARGET_WIN)
 	@cp -v 3rdparty/SDL/install/bin/SDL2.dll $(BUILD_DIR)
-	@if [[ -f $(MINGW_DIR)/lib/libwinpthread-1.dll ]]; then cp -v /usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll $(BUILD_DIR); else cp -v /usr/x86_64-w64-mingw32/bin/libwinpthread-1.dll $(BUILD_DIR); fi
+	@bash -c "if [[ -f /usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll ]]; then cp -v /usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll $(BUILD_DIR); else cp -v /usr/x86_64-w64-mingw32/bin/libwinpthread-1.dll $(BUILD_DIR); fi"
 	@zip $(BUILD_DIR)/$(BIN_NAME).zip $(TARGET_WIN) $(BUILD_DIR)/*.dll
 
 all: linux windows
