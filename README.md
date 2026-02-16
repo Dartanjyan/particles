@@ -11,7 +11,7 @@ Nobody is going to read this so I am not adding full instructions on how to inst
 ./build/particles charged
 ```
 ### Windows
-Unpack zip archive, go to build folder, double click for default mode. \
+Unpack zip archive, go to build folder, double click for default mode.
 #### Default mode
 Inside build folder
 ```shell
