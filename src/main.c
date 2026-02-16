@@ -14,6 +14,7 @@
 #include "drawing.h"
 
 #define FPS 60
+#define M_PI 3.14159265358979323846
 
 #define MAX_X 800
 #define MAX_Y 600
@@ -33,7 +34,13 @@
 #define DEFAULT_DENSITY 5
 #define ELASTICITY 0.8
 
-int main(int argc, char** argv) {
+#ifdef _WIN32
+#define main() int WinMain(int argc, char** argv)
+#else
+#define main() int main(int argc, char** argv)
+#endif
+
+main() {
     printf("Hello world!\n");
     srand(time(NULL));
 
