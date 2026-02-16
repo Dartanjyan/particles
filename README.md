@@ -1,5 +1,27 @@
 # Particles
 Nobody is going to read this so I am not adding full instructions on how to install libraries. Use Google.
+## Running
+### Linux
+#### Default mode
+```shell
+./build/particles
+```
+#### Charged particles mode
+```shell
+./build/particles charged
+```
+### Windows
+Unpack zip archive, go to build folder, double click for default mode. \
+#### Default mode
+Inside build folder
+```shell
+.\particles.exe
+```
+#### Charged particles mode
+Inside build folder
+```shell
+.\particles.exe charged
+```
 ## Build on Linux
 ### Dependencies
 `

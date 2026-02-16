@@ -2,11 +2,14 @@
 #define PARTICLE_H
 
 #include <SDL2/SDL.h>
+#include <chipmunk/chipmunk.h>
+
 struct Particle {
     cpBody *body;
     cpShape *shape;
     SDL_Color color;
     float radius;
+    cpVect lastPos;
 };
 
 #endif

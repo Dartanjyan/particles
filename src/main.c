@@ -4,6 +4,7 @@
 #include <string.h>
 #include <time.h>
 #include <math.h>
+#include <string.h>
 
 #include <SDL2/SDL.h>
 #include <chipmunk/chipmunk.h>
@@ -21,7 +22,19 @@
 
 #define STEP 0.05
 #define GRAVITY 0, 0
-#define PARTICLES 100
+#define PARTICLES 200
+
+// ----- Protons
+#define PROTON_SIZE 5
+#define PROTON_COLOR 255, 64, 64
+#define PROTON_MASS 1.67262192e-27
+
+// ----- Electrons
+#define ELECTRON_SIZE 2
+#define ELECTRON_COLOR 128, 128, 255
+#define ELECTRON_MASS 9.1093837e-31
+// Chance for charged particle to be electron instead of proton
+#define ELECTRON_CHANCE 0.8
 
 #define RAND_VEL_MAX 20
 
@@ -40,9 +53,119 @@
 #define main() int main(int argc, char** argv)
 #endif
 
+enum Command {
+    HELP,
+    CHARGED,
+    DEFAULT
+};
+
+void PrintHelp() {
+    printf(
+        "Usage:\n\t./evolution [charged|help|-h|--help]\n\n"
+        "Options:\n"
+        "\tcharged\t\tChange particles behaviour to charged particles.\n"
+        "\t\t\tThey'l behave somewhat like protons and electrons\n"
+        "\n\t-h/--help/help\tShow this help and exit.\n\n"
+    );
+}
+
+void createDefaultParticles(cpSpace *space, struct Particle *particles) {
+    for(size_t i = 0; i < PARTICLES; ++i) {
+        float radius = rand() % (RAND_SIZE_MAX - RAND_SIZE_MIN) + RAND_SIZE_MIN;
+        float density;
+        
+        if(!RANDOM_DENSITY) {
+            density = random_float(RAND_DENSITY_MIN, RAND_DENSITY_MAX);
+        } else {
+            density = DEFAULT_DENSITY;
+        }
+        float area = radius * radius * M_PI;
+        cpFloat mass = area * density;
+        cpFloat moment = cpMomentForCircle(mass, 0, radius, cpvzero);
+
+        cpBody *body = cpBodyNew(mass, moment);
+        cpShape *shape = cpCircleShapeNew(body, radius, cpvzero);
+        
+        cpBodySetPosition(body, cpv(rand()%MAX_X, rand()%MAX_Y));
+        cpBodySetVelocity(body, cpv(random_float(-RAND_VEL_MAX, RAND_VEL_MAX), random_float(-RAND_VEL_MAX, RAND_VEL_MAX)));
+        cpShapeSetElasticity(shape, ELASTICITY);
+
+        particles[i].body = body;
+        particles[i].shape = shape;
+        particles[i].color = random_color();
+        particles[i].radius = radius;
+
+        cpSpaceAddBody(space, body);
+        cpSpaceAddShape(space, shape);
+    }
+}
+
+void createChargedParticles(cpSpace *space, struct Particle *particles) {
+    for(size_t i = 0; i < PARTICLES; ++i) {
+        // false means proton
+        bool isElectron = (float)(rand() % (100 - 0 + 1) + 0) / 100 < ELECTRON_CHANCE;
+        float radius;
+        double mass;
+        if (isElectron) {
+            radius = ELECTRON_SIZE;
+            mass = ELECTRON_MASS;
+            SDL_Color col = {ELECTRON_COLOR};
+            particles[i].color = col;
+        } else {
+            radius = PROTON_SIZE;
+            mass = PROTON_MASS;
+            SDL_Color col = {PROTON_COLOR};
+            particles[i].color = col;
+        }
+        
+        cpFloat moment = cpMomentForCircle(mass, 0, radius, cpvzero);
+
+        cpBody *body = cpBodyNew(mass, moment);
+        cpShape *shape = cpCircleShapeNew(body, radius, cpvzero);
+        
+        cpBodySetPosition(body, cpv(rand()%MAX_X, rand()%MAX_Y));
+        cpBodySetVelocity(body, cpv(random_float(-RAND_VEL_MAX, RAND_VEL_MAX), random_float(-RAND_VEL_MAX, RAND_VEL_MAX)));
+        cpShapeSetElasticity(shape, ELASTICITY);
+
+        particles[i].body = body;
+        particles[i].shape = shape;
+        particles[i].radius = radius;
+
+        cpSpaceAddBody(space, body);
+        cpSpaceAddShape(space, shape);
+    }
+}
+
 main() {
-    printf("Hello world!\n");
+    bool chargedParticles = false;
+
     srand(time(NULL));
+    enum Command commandType = DEFAULT;
+
+    for (size_t i = 1; i < argc; i++) {
+        char *word = argv[i];
+
+        if (strcmp(word, "charged") == false) {
+            commandType = CHARGED;
+        } else if (strcmp(word, "help") == false || strcmp(word, "--help") == false || strcmp(word, "-h") == false) {
+            commandType = HELP;
+            break;
+        } else {
+            commandType = HELP;
+        }
+    }
+
+    switch (commandType) {
+        case HELP:
+            PrintHelp();
+            return 0;
+        case CHARGED:
+            chargedParticles = true;
+            break;
+        case DEFAULT:
+        default:
+            break;
+    }
 
     // SDL2
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -110,33 +233,10 @@ main() {
 
     // particles
     struct Particle particles[PARTICLES];
-    for(size_t i = 0; i < PARTICLES; ++i) {
-        float radius = rand() % (RAND_SIZE_MAX - RAND_SIZE_MIN) + RAND_SIZE_MIN;
-        float density;
-        
-        if(!RANDOM_DENSITY) {
-            density = random_float(RAND_DENSITY_MIN, RAND_DENSITY_MAX);
-        } else {
-            density = DEFAULT_DENSITY;
-        }
-        float area = radius * radius * M_PI;
-        cpFloat mass = area * density;
-        cpFloat moment = cpMomentForCircle(mass, 0, radius, cpvzero);
-
-        cpBody *body = cpBodyNew(mass, moment);
-        cpShape *shape = cpCircleShapeNew(body, radius, cpvzero);
-        
-        cpBodySetPosition(body, cpv(rand()%MAX_X, rand()%MAX_Y));
-        cpBodySetVelocity(body, cpv(random_float(-RAND_VEL_MAX, RAND_VEL_MAX), random_float(-RAND_VEL_MAX, RAND_VEL_MAX)));
-        cpShapeSetElasticity(shape, ELASTICITY);
-
-        particles[i].body = body;
-        particles[i].shape = shape;
-        particles[i].color = random_color();
-        particles[i].radius = radius;
-
-        cpSpaceAddBody(space, body);
-        cpSpaceAddShape(space, shape);
+    if (chargedParticles) {
+        createChargedParticles(space, &particles[0]);
+    } else {
+        createDefaultParticles(space, &particles[0]);
     }
 
     // Main cycle
@@ -177,6 +277,10 @@ main() {
             SDL_SetRenderDrawColor(renderer, clr.r, clr.g, clr.b, clr.a);
             cpVect pos = cpBodyGetPosition(particles[i].body);
             draw_circle(renderer, pos.x, pos.y, particles[i].radius);
+            if (pos.x > MAX_X || pos.x < 0 || pos.y > MAX_Y || pos.y < 0) {
+                cpBodySetPosition(particles[i].body, cpv(MAX_X / 2, MAX_Y / 2));
+                cpBodySetVelocity(particles[i].body, cpvmult(cpBodyGetVelocity(particles[i].body), (1.0/5)));
+            }
         }
 
         SDL_RenderPresent(renderer);
@@ -185,7 +289,7 @@ main() {
             for(size_t i = 0; i < PARTICLES; ++i) {
                 char buffer[512];
                 // F = G/(r^2)
-                const float G = 1e3;
+                const float G = chargedParticles ? 1e-25 : 1e3;
 
                 cpVect bodyPos = cpBodyGetPosition(particles[i].body);
                 cpVect vector = cpvsub(mousePos, bodyPos);
