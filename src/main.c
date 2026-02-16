@@ -27,12 +27,12 @@
 // ----- Protons
 #define PROTON_SIZE 5
 #define PROTON_COLOR 255, 64, 64
-#define PROTON_MASS 1.67262192e-27
+#define PROTON_MASS 1.67262192e-0  // 1.67262192e-27
 
 // ----- Electrons
 #define ELECTRON_SIZE 2
 #define ELECTRON_COLOR 128, 128, 255
-#define ELECTRON_MASS 9.1093837e-31
+#define ELECTRON_MASS 9.1093837e-4  // 9.1093837e-31
 // Chance for charged particle to be electron instead of proton
 #define ELECTRON_CHANCE 0.8
 
@@ -242,6 +242,7 @@ main() {
     // Main cycle
     bool running = true;
     bool lmbPressed = false;
+    size_t counter;
     cpVect mousePos;
 
     while (running) {
@@ -289,7 +290,7 @@ main() {
             for(size_t i = 0; i < PARTICLES; ++i) {
                 char buffer[512];
                 // F = G/(r^2)
-                const float G = chargedParticles ? 1e-25 : 1e3;
+                const float G = chargedParticles ? 1e1 : 1e3;  // chargedParticles ? 1e-25 : 1e3;
 
                 cpVect bodyPos = cpBodyGetPosition(particles[i].body);
                 cpVect vector = cpvsub(mousePos, bodyPos);
@@ -301,7 +302,7 @@ main() {
                 cpBodyApplyForceAtWorldPoint(
                     particles[i].body,
                     cpvmult(vector, 1),
-                    cpBodyGetPosition(particles[i].body)
+                    bodyPos
                 );
                 /*
                 int written = snprintf(buffer, sizeof(buffer),
@@ -315,7 +316,13 @@ main() {
         }
 
         cpSpaceStep(space, STEP);
-        tick(FPS);
+
+        long delta = tick(FPS);
+        if (++counter >= 60) {
+            char fpsBuf[64];
+            snprintf(fpsBuf, sizeof(fpsBuf), "Colliding particles! FPS: %.0f", (double)1e9 / delta);
+            SDL_SetWindowTitle(window, fpsBuf);
+        }
     }
     
     // Cleaning chipmunk

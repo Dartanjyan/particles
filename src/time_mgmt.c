@@ -1,17 +1,18 @@
 #include <time.h>
-// #include <errno.h>
 
 #include "time_mgmt.h"
 
-void tick(float fps) {
+long tick(float fps) {
     static struct timespec last_time;
     struct timespec current_time;
     long frame_delay_ns = (long)(1e9 / fps);
 
     clock_gettime(CLOCK_MONOTONIC, &current_time);
 
+    long elapsed_ns = 0;
+
     if (last_time.tv_sec != 0) {
-        long elapsed_ns = (current_time.tv_sec - last_time.tv_sec) * 1e9 +
+        elapsed_ns = (current_time.tv_sec - last_time.tv_sec) * 1e9 +
                          (current_time.tv_nsec - last_time.tv_nsec);
 
         if (elapsed_ns < frame_delay_ns) {
@@ -24,4 +25,5 @@ void tick(float fps) {
     }
 
     last_time = current_time;
+    return elapsed_ns;
 }
