@@ -64,7 +64,7 @@ void PrintHelp() {
         "Usage:\n\t./evolution [charged|help|-h|--help]\n\n"
         "Options:\n"
         "\tcharged\t\tChange particles behaviour to charged particles.\n"
-        "\t\t\tThey'l behave somewhat like protons and electrons\n"
+        "\t\t\tThey'll behave somewhat like protons and electrons\n"
         "\n\t-h/--help/help\tShow this help and exit.\n\n"
     );
 }
