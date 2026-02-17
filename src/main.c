@@ -47,12 +47,6 @@
 #define DEFAULT_DENSITY 5
 #define ELASTICITY 0.8
 
-#ifdef _WIN32
-#define main() int WinMain(int argc, char** argv)
-#else
-#define main() int main(int argc, char** argv)
-#endif
-
 enum Command {
     HELP,
     CHARGED,
@@ -136,7 +130,12 @@ void createChargedParticles(cpSpace *space, struct Particle *particles) {
     }
 }
 
-main() {
+#ifdef _WIN32
+int WinMain(int argc, char** argv)
+#else
+int main(int argc, char** argv)
+#endif
+{
     bool chargedParticles = false;
 
     srand(time(NULL));
