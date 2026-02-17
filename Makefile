@@ -6,7 +6,7 @@ LDFLAGS_LINUX = $(LDFLAGS) -lSDL2 -L/usr/local/lib
 LDFLAGS_WIN = $(LDFLAGS) -L3rdparty/SDL/install/lib -lmingw32 -lSDL2main -lSDL2 -mwindows -L3rdparty/chipmunk/install/lib -lwinpthread
 
 CFLAGS = -O2
-CFLAGS_LINUX = $(CFLAGS) -I/usr/include/SDL2 -D_REENTRANT
+CFLAGS_LINUX = $(CFLAGS) -I/usr/include/SDL2 -D_REENTRANT -g
 CFLAGS_WIN = $(CFLAGS) -I3rdparty/SDL/install/include -I3rdparty/chipmunk/install/include -Dmain=SDL_main
 
 SRC_DIR = src

@@ -10,6 +10,7 @@ struct Particle {
     SDL_Color color;
     float radius;
     cpVect lastPos;
+    bool negForces;
 };
 
 #endif

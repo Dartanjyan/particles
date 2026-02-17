@@ -47,6 +47,14 @@
 #define DEFAULT_DENSITY 5
 #define ELASTICITY 0.8
 
+/*
+    TYPE is type
+    a and b are variables to swap
+*/
+#define SWAP(TYPE, a, b) { TYPE tmp = a; a = b; b = tmp; }
+
+#define ARRAY_LEN(arr) (sizeof(arr) / sizeof(arr[0]))
+
 enum Command {
     HELP,
     CHARGED,
@@ -124,6 +132,7 @@ void createChargedParticles(cpSpace *space, struct Particle *particles) {
         particles[i].body = body;
         particles[i].shape = shape;
         particles[i].radius = radius;
+        particles[i].negForces = isElectron;
 
         cpSpaceAddBody(space, body);
         cpSpaceAddShape(space, shape);
@@ -136,7 +145,7 @@ int WinMain(int argc, char** argv)
 int main(int argc, char** argv)
 #endif
 {
-    bool chargedParticles = false;
+    bool chargedParticles = true;
 
     srand(time(NULL));
     enum Command commandType = DEFAULT;
@@ -159,7 +168,7 @@ int main(int argc, char** argv)
             PrintHelp();
             return 0;
         case CHARGED:
-            chargedParticles = true;
+            chargedParticles = !chargedParticles;
             break;
         case DEFAULT:
         default:
@@ -233,9 +242,9 @@ int main(int argc, char** argv)
     // particles
     struct Particle particles[PARTICLES];
     if (chargedParticles) {
-        createChargedParticles(space, &particles[0]);
+        createChargedParticles(space, particles);
     } else {
-        createDefaultParticles(space, &particles[0]);
+        createDefaultParticles(space, particles);
     }
 
     // Main cycle
@@ -243,8 +252,25 @@ int main(int argc, char** argv)
     bool lmbPressed = false;
     size_t counter;
     cpVect mousePos;
+    
+    // A grid where charged particles put their forces
+    size_t len = MAX_X * MAX_Y;
+    cpVect *worldForces1 = (cpVect *)malloc(sizeof(cpVect) * len);
+    cpVect *worldForces2 = (cpVect *)malloc(sizeof(cpVect) * len);
+    cpVect *worldForcesFront = worldForces1;
+    cpVect *worldForcesBack = worldForces2;
+    SWAP(cpVect*, worldForcesFront, worldForcesBack);
+    for (size_t i = 0; i < ARRAY_LEN(worldForces1); i++) {
+        worldForcesFront[i] = cpvzero;
+    }
 
     while (running) {
+        // Init forces with zeros
+        for (size_t i = 0; i < ARRAY_LEN(worldForces1); i++) {
+            worldForcesBack[i] = cpvzero;
+        }
+        SWAP(cpVect*, worldForcesFront, worldForcesBack);
+
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
@@ -277,6 +303,17 @@ int main(int argc, char** argv)
             SDL_SetRenderDrawColor(renderer, clr.r, clr.g, clr.b, clr.a);
             cpVect pos = cpBodyGetPosition(particles[i].body);
             draw_circle(renderer, pos.x, pos.y, particles[i].radius);
+
+            /*
+            Put particle's impact
+            Decide what distance particle is impacting, let it be R
+            in for loop for the square with each side being R*2, if 
+            distance from center (particle pos) <= r then apply force.
+
+            Equasion for R... Let me sleep.
+            */
+
+            // Check if particle is out of world
             if (pos.x > MAX_X || pos.x < 0 || pos.y > MAX_Y || pos.y < 0) {
                 cpBodySetPosition(particles[i].body, cpv(MAX_X / 2, MAX_Y / 2));
                 cpBodySetVelocity(particles[i].body, cpvmult(cpBodyGetVelocity(particles[i].body), (1.0/5)));
@@ -343,5 +380,8 @@ int main(int argc, char** argv)
     SDL_DestroyWindow(window);
     SDL_Quit();
     
+    free(worldForces1);
+    free(worldForces2);
+
     return 0;
 }
