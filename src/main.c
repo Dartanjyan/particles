@@ -10,7 +10,7 @@
 #include <chipmunk/chipmunk.h>
 
 #include "particle.h"
-#include "random_funcs.h"
+#include "funcs.h"
 #include "time_mgmt.h"
 #include "drawing.h"
 
@@ -21,9 +21,9 @@
 #define MAX_Y 600
 
 #define STEP 0.05
-#define STEPS_AMOUNT 5
+#define STEPS_AMOUNT 1000
 #define GRAVITY 0, 0
-#define PARTICLES 200
+#define PARTICLES 20
 
 // ----- Protons
 #define PROTON_SIZE 5
@@ -53,8 +53,9 @@
     a and b are variables to swap
 */
 #define SWAP(TYPE, a, b) { TYPE tmp = a; a = b; b = tmp; }
-
 #define ARRAY_LEN(arr) (sizeof(arr) / sizeof(arr[0]))
+#define MAX(a, b) (b > a ? b : a)
+#define MIN(a, b) (b < a ? b : a)
 
 enum Command {
     HELP,
@@ -97,6 +98,7 @@ void createDefaultParticles(cpSpace *space, struct Particle *particles) {
         particles[i].shape = shape;
         particles[i].color = random_color();
         particles[i].radius = radius;
+        particles[i].particleType = SIMPLE;
 
         cpSpaceAddBody(space, body);
         cpSpaceAddShape(space, shape);
@@ -139,6 +141,7 @@ void createChargedParticles(cpSpace *space, struct Particle *particles) {
         cpSpaceAddShape(space, shape);
     }
 }
+
 
 #ifdef _WIN32
 int WinMain(int argc, char** argv)
@@ -251,7 +254,7 @@ int main(int argc, char** argv)
     // Main cycle
     bool running = true;
     bool lmbPressed = false;
-    size_t counter;
+    size_t counter = 50;
     cpVect mousePos;
     
     // A grid where charged particles put their forces
@@ -312,26 +315,48 @@ int main(int argc, char** argv)
             in for loop for the square with each side being R*2, if 
             distance from center (particle pos) <= r then apply force.
 
-            Impact on electromagnetic fields
+            Impact on electromagnetic field
 
-            (->)F = k * q * (->)E(x, y), where:
-                (->)E is a field stress vector in a cell (x, y)
-                q is a particle's charge (-1 or 1)
-                k is a coefficient for tuning forces
+            r = distance(particle_pos, cell_pos);
+            For each cell in radius R
+                E += k * q * normalize(cell_pos - particle_pos) * falloff(r);
              */
+            const uint8_t R = 30;
+
+            // coefficient for field
+            const float k = 100;
+            // -1 for electrons, +1 for protons
+            const float q = particles[i].particleType == ELECTRON ? -1 : 1;
             
-            // Check if particle is out of world
+            for (size_t y = pos.y - R; y < pos.y + R; y++) {
+                for (size_t x = pos.x - R; x < pos.x + R; x++) {
+                    const float dist2 = pow(x - pos.x, 2) + pow(y - pos.y, 2);
+                    if (dist2 <= R*R) {
+                        const size_t possibleIdx = (size_t)(y*(MAX_Y-1) + x);
+                        const size_t idx = MIN(possibleIdx, worldForcesArraySize);
+                        // E = normalized(cellPos - particlePos) * k * q / r^2
+                        const cpVect E = cpvmult(cpvnormalize(cpvadd(cpv(x, y), cpvneg(pos))), k * q * falloff(sqrt(dist2)));
+                        worldForcesFront[idx] = cpvadd(worldForcesFront[idx], E);
+                        // printf("Added (%.02f, %.02f). k*q*falloff(%f) = %f\n", worldForcesFront[idx].x, worldForcesFront[idx].y, sqrt(dist2), k*q*falloff(sqrt(dist2)));
+                    }
+                }
+            }
+            
+            // Check if particle is outside of the world
             if (pos.x >= MAX_X || pos.x < 0 || pos.y >= MAX_Y || pos.y < 0) {
                 cpBodySetPosition(particles[i].body, cpv(MAX_X / 2, MAX_Y / 2));
                 cpBodySetVelocity(particles[i].body, cpvmult(cpBodyGetVelocity(particles[i].body), (1.0/5)));
-            } else {
-                const int x = pos.x;
-                const int y = pos.y;
-    
-                const cpVect E = worldForcesFront[y*(MAX_Y-1) + x];
-                const float q = particles->particleType == ELECTRON ? -1 : 1;
-                const float k = 1;
-                const cpVect F = cpvmult(E, k * q);
+            } else if (particles[i].particleType != SIMPLE) {
+                /*
+                Impact of field on particles
+                (->)F = k * q * (->)E(x, y), where:
+                    (->)E is a field stress vector in a cell (x, y)
+                    q is a particle's charge (-1 or 1)
+                    k is a coefficient for tuning forces
+                 */
+
+                const cpVect E = worldForcesFront[(size_t)(pos.y*(MAX_Y-1) + pos.x)];
+                const cpVect F = cpvmult(E, q);
                 cpBodyApplyForceAtLocalPoint(particles[i].body, F, cpvzero);
             }
         }
@@ -359,15 +384,30 @@ int main(int argc, char** argv)
             }
         }
 
+        const size_t VECTORS_SIZE = 30;
+        for (size_t y = 0; y <= MAX_Y / VECTORS_SIZE; y += VECTORS_SIZE) {
+            for (size_t x = 0; x <= MAX_X / VECTORS_SIZE; x += VECTORS_SIZE) {
+                const cpVect vect = worldForcesFront[y * MAX_Y + x];
+                draw_vector_arrow(
+                    renderer,
+                    x, y,
+                    vect.x, vect.y,
+                    VECTORS_SIZE-1
+                );
+            }
+        }
+
         for (size_t i = 0; i < STEPS_AMOUNT; i++)
             cpSpaceStep(space, STEP/STEPS_AMOUNT);
 
         long delta = tick(FPS);
-        if (++counter >= 60) {
+        if (counter >= 60) {
             char fpsBuf[64];
             snprintf(fpsBuf, sizeof(fpsBuf), "Colliding particles! FPS: %.0f", (double)1e9 / delta);
             SDL_SetWindowTitle(window, fpsBuf);
+            counter = 0;
         }
+        counter++;
     }
     
     // Cleaning chipmunk

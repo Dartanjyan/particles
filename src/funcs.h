@@ -7,4 +7,6 @@ float random_float(float min, float max);
 
 SDL_Color random_color();
 
+float falloff(float x);
+
 #endif

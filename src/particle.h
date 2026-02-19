@@ -7,7 +7,8 @@
 
 typedef enum ParticleType {
     PROTON,
-    ELECTRON
+    ELECTRON,
+    SIMPLE
 } ParticleType;
 
 struct Particle {
