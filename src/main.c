@@ -21,6 +21,7 @@
 #define MAX_Y 600
 
 #define STEP 0.05
+#define STEPS_AMOUNT 5
 #define GRAVITY 0, 0
 #define PARTICLES 200
 
@@ -132,7 +133,7 @@ void createChargedParticles(cpSpace *space, struct Particle *particles) {
         particles[i].body = body;
         particles[i].shape = shape;
         particles[i].radius = radius;
-        particles[i].negForces = isElectron;
+        particles[i].particleType = isElectron ? ELECTRON : PROTON;
 
         cpSpaceAddBody(space, body);
         cpSpaceAddShape(space, shape);
@@ -254,11 +255,12 @@ int main(int argc, char** argv)
     cpVect mousePos;
     
     // A grid where charged particles put their forces
-    size_t len = MAX_X * MAX_Y;
-    cpVect *worldForces1 = (cpVect *)malloc(sizeof(cpVect) * len);
-    cpVect *worldForces2 = (cpVect *)malloc(sizeof(cpVect) * len);
+    const size_t worldForcesArraySize = MAX_X * MAX_Y;
+    cpVect *worldForces1 = (cpVect *)malloc(sizeof(cpVect) * worldForcesArraySize);
+    cpVect *worldForces2 = (cpVect *)malloc(sizeof(cpVect) * worldForcesArraySize);
     cpVect *worldForcesFront = worldForces1;
     cpVect *worldForcesBack = worldForces2;
+    printf("Allocated %.02f MB in heap\n", (float)((float)sizeof(cpVect) * worldForcesArraySize * 2 / 1024 / 1024));
     SWAP(cpVect*, worldForcesFront, worldForcesBack);
     for (size_t i = 0; i < ARRAY_LEN(worldForces1); i++) {
         worldForcesFront[i] = cpvzero;
@@ -310,13 +312,27 @@ int main(int argc, char** argv)
             in for loop for the square with each side being R*2, if 
             distance from center (particle pos) <= r then apply force.
 
-            Equasion for R... Let me sleep.
-            */
+            Impact on electromagnetic fields
 
+            (->)F = k * q * (->)E(x, y), where:
+                (->)E is a field stress vector in a cell (x, y)
+                q is a particle's charge (-1 or 1)
+                k is a coefficient for tuning forces
+             */
+            
             // Check if particle is out of world
-            if (pos.x > MAX_X || pos.x < 0 || pos.y > MAX_Y || pos.y < 0) {
+            if (pos.x >= MAX_X || pos.x < 0 || pos.y >= MAX_Y || pos.y < 0) {
                 cpBodySetPosition(particles[i].body, cpv(MAX_X / 2, MAX_Y / 2));
                 cpBodySetVelocity(particles[i].body, cpvmult(cpBodyGetVelocity(particles[i].body), (1.0/5)));
+            } else {
+                const int x = pos.x;
+                const int y = pos.y;
+    
+                const cpVect E = worldForcesFront[y*(MAX_Y-1) + x];
+                const float q = particles->particleType == ELECTRON ? -1 : 1;
+                const float k = 1;
+                const cpVect F = cpvmult(E, k * q);
+                cpBodyApplyForceAtLocalPoint(particles[i].body, F, cpvzero);
             }
         }
 
@@ -337,21 +353,14 @@ int main(int argc, char** argv)
                 vector = cpvmult(direction, divided);
                 cpBodyApplyForceAtWorldPoint(
                     particles[i].body,
-                    cpvmult(vector, 1),
+                    cpvmult(vector, STEPS_AMOUNT),
                     bodyPos
                 );
-                /*
-                int written = snprintf(buffer, sizeof(buffer),
-                        "Mouse pos: (%.2f, %.2f)\nBody pos: (%.2f, %.2f)\nDistance: %.2f, ^2=%.2f\n1/(distance^2): %f\nDirection: (%.2f, %.2f)\nForce = (%f, %f)",
-                        mousePos.x, mousePos.y, bodyPos.x, bodyPos.y, distance, distance2, divided, direction.x, direction.y, vector.x, vector.y
-                        );
-                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Debug", buffer, NULL);
-                return -1;
-                */
             }
         }
 
-        cpSpaceStep(space, STEP);
+        for (size_t i = 0; i < STEPS_AMOUNT; i++)
+            cpSpaceStep(space, STEP/STEPS_AMOUNT);
 
         long delta = tick(FPS);
         if (++counter >= 60) {

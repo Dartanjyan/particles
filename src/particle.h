@@ -3,6 +3,12 @@
 
 #include <SDL2/SDL.h>
 #include <chipmunk/chipmunk.h>
+#include <stdint.h>
+
+typedef enum ParticleType {
+    PROTON,
+    ELECTRON
+} ParticleType;
 
 struct Particle {
     cpBody *body;
@@ -10,7 +16,7 @@ struct Particle {
     SDL_Color color;
     float radius;
     cpVect lastPos;
-    bool negForces;
+    uint8_t particleType;
 };
 
 #endif
