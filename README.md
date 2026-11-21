@@ -15,11 +15,12 @@ On arch linux there's a `chipmunk` package in AUR but it is built there in Relea
 `chipmunk-devel` on Fedora and `libchipmunk-dev` on Debian should be fine.
 ### Compiling
 ```shell
-make
+cmake -S . -B build
+cmake --build build
 ```
-Binary will appear in `build` directory. To build and run there's a target `run` in `Makefile`:
+The binary will appear in the `build` directory. To build and run:
 ```shell
-make run
+cmake --build build --target run
 ```
 I use Arch btw and had the problem: `./build/particles: error while loading shared libraries: libchipmunk.so.7: cannot open shared object file: No such file or directory`. To fix this, I had to set up a `LD_LIBRARY_PATH` variable:
 ```shell
@@ -42,6 +43,9 @@ HOST=Windows ./scripts/build-sdl2.sh
 ```
 These scripts will build dll's for Windows. Then build the project:
 ```
-make windows
+cmake -S . -B build \
+  -DCMAKE_SYSTEM_NAME=Windows \
+  -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc
+cmake --build build --target windows
 ```
 After this, `particles.zip` must appear in `build` directory. On Windows machine UNPACK this before launching. Don't launch it straightly from the archive
